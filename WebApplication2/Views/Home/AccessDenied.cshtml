@@ -1,0 +1,42 @@
+@{
+    ViewData["Title"] = "Access Denied";
+    var isAuthenticated = User.Identity?.IsAuthenticated == true;
+    var isAdmin = User.IsInRole("Admin");
+}
+
+<div class="row justify-content-center py-4">
+    <div class="col-md-7">
+        <div class="card border-danger shadow-sm">
+            <div class="card-header bg-danger text-white">
+                <h4 class="mb-0">Access Denied</h4>
+            </div>
+            <div class="card-body">
+                <p class="mb-2">
+                    You do not have permission to access this page or perform this action.
+                </p>
+                <p class="text-muted small mb-4">
+                    Admin pages and product add/edit/delete operations require an approved <strong>Admin</strong> account.
+                </p>
+                <div class="d-flex flex-wrap gap-2">
+                    @if (isAuthenticated)
+                    {
+                        @if (isAdmin)
+                        {
+                            <a asp-controller="Admin" asp-action="Dashboard" class="btn btn-warning">Admin Dashboard</a>
+                        }
+                        else
+                        {
+                            <a asp-controller="User" asp-action="Dashboard" class="btn btn-primary">User Dashboard</a>
+                        }
+                        <a asp-controller="Products" asp-action="Index" class="btn btn-outline-dark">Product Table</a>
+                    }
+                    else
+                    {
+                        <a asp-controller="Account" asp-action="Login" class="btn btn-primary">Go to Login</a>
+                    }
+                    <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary">Back to Home</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

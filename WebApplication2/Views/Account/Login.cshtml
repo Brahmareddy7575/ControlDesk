@@ -1,0 +1,106 @@
+@model WebApplication2.Models.LoginViewModel
+@{
+    var isAdminLogin = string.Equals(Model?.LoginRole, "Admin", StringComparison.OrdinalIgnoreCase);
+    var formAction = isAdminLogin ? "AdminLogin" : "UserLogin";
+    ViewData["Title"] = isAdminLogin ? "Admin Login" : "User Login";
+    var hasModelErrors = ViewData.ModelState.TryGetValue(string.Empty, out var modelStateEntry) && modelStateEntry.Errors.Count > 0;
+}
+
+<div class="row justify-content-center py-3">
+    <div class="col-md-6 col-lg-5">
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                @TempData["SuccessMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                @TempData["ErrorMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        <div class="btn-group w-100 mb-3 shadow-sm" role="group" aria-label="Login role selector">
+            <a asp-controller="Account" asp-action="UserLogin" asp-route-returnUrl="@Model?.ReturnUrl"
+               class="btn @(isAdminLogin ? "btn-outline-primary bg-white" : "btn-primary fw-semibold")">
+                User Login
+            </a>
+            <a asp-controller="Account" asp-action="AdminLogin" asp-route-returnUrl="@Model?.ReturnUrl"
+               class="btn @(isAdminLogin ? "btn-warning fw-semibold text-dark" : "btn-outline-warning bg-white text-dark")">
+                Admin Login
+            </a>
+        </div>
+
+        <div class="card shadow-sm @(isAdminLogin ? "border-warning" : "border-primary")">
+            <div class="card-header @(isAdminLogin ? "bg-warning text-dark" : "bg-primary text-white")">
+                <h4 class="mb-0">@(isAdminLogin ? "Admin Login" : "User Login")</h4>
+                <small>
+                    @(isAdminLogin
+                        ? "Sign in with an approved Administrator account"
+                        : "Sign in with an Admin-approved User account")
+                </small>
+            </div>
+            <div class="card-body p-4">
+                <form asp-controller="Account" asp-action="@formAction" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="LoginRole" value="@(isAdminLogin ? "Admin" : "User")" />
+                    <input type="hidden" asp-for="ReturnUrl" />
+
+                    @if (hasModelErrors)
+                    {
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2" role="alert"></div>
+                    }
+
+                    <div class="mb-3">
+                        <label asp-for="NameOrEmail" class="form-label"></label>
+                        <input asp-for="NameOrEmail" class="form-control" autocomplete="username" placeholder="Enter username or email" />
+                        <span asp-validation-for="NameOrEmail" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Password" class="form-label"></label>
+                        <input asp-for="Password" class="form-control" autocomplete="current-password" placeholder="Enter password" />
+                        <span asp-validation-for="Password" class="text-danger small"></span>
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input asp-for="RememberMe" class="form-check-input" />
+                        <label asp-for="RememberMe" class="form-check-label"></label>
+                    </div>
+
+                    <button type="submit" class="btn @(isAdminLogin ? "btn-warning text-dark fw-semibold" : "btn-primary") w-100">
+                        @(isAdminLogin ? "Sign In as Admin" : "Sign In as User")
+                    </button>
+                </form>
+
+                <hr class="my-3" />
+
+                @if (isAdminLogin)
+                {
+                    <p class="text-muted small mb-0 text-center">
+                        Standard users should use <a asp-controller="Account" asp-action="UserLogin" asp-route-returnUrl="@Model?.ReturnUrl">User Login</a>.
+                    </p>
+                }
+                else
+                {
+                    <div class="text-center">
+                        <p class="text-muted small mb-2">
+                            New accounts require Admin approval before login is enabled.
+                        </p>
+                        <a asp-controller="Account" asp-action="Register" class="btn btn-outline-success btn-sm">
+                            Create a New User Account
+                        </a>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
+

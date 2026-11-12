@@ -1,0 +1,164 @@
+@model WebApplication2.Models.AdminUserDetailsViewModel
+@{
+    ViewData["Title"] = "User Details";
+    var u = Model.User;
+    var roleName = u.UserRole?.RoleName ?? u.Role ?? "User";
+    var statusName = u.ApprovalStatus?.StatusName ?? (u.IsApproved ? "Approved" : "Pending");
+    var statusBadge = statusName switch
+    {
+        "Approved" => "bg-success",
+        "Rejected" => "bg-danger",
+        _ => "bg-warning text-dark"
+    };
+    var isCurrentUser = string.Equals(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, u.ID.ToString(), StringComparison.Ordinal);
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+        <h2 class="mb-0">User Details: @u.Name</h2>
+        <p class="text-muted mb-0 small">Full approved profile and submission history</p>
+    </div>
+    <a asp-controller="Admin" asp-action="Dashboard" class="btn btn-outline-secondary">Back to Admin Dashboard</a>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Account &amp; Profile Details</h5>
+        <div>
+            <span class="badge @(roleName == "Admin" ? "bg-warning text-dark" : "bg-info text-dark") me-1">@roleName</span>
+            <span class="badge @statusBadge">@statusName</span>
+        </div>
+    </div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">User ID</dt>
+            <dd class="col-sm-9">@u.ID</dd>
+
+            <dt class="col-sm-3">Username / Name</dt>
+            <dd class="col-sm-9">@u.Name</dd>
+
+            <dt class="col-sm-3">Email</dt>
+            <dd class="col-sm-9">@u.Email</dd>
+
+            <dt class="col-sm-3">Phone Number</dt>
+            <dd class="col-sm-9">@(u.PhoneNumber ?? "-")</dd>
+
+            <dt class="col-sm-3">Department</dt>
+            <dd class="col-sm-9">@(u.Department ?? "-")</dd>
+
+            <dt class="col-sm-3">Address</dt>
+            <dd class="col-sm-9">@(u.Address ?? "-")</dd>
+
+            <dt class="col-sm-3">Personal Details</dt>
+            <dd class="col-sm-9">@(u.PersonalDetails ?? "-")</dd>
+
+            <dt class="col-sm-3">Created At (UTC)</dt>
+            <dd class="col-sm-9">@u.CreatedAt.ToString("yyyy-MM-dd HH:mm")</dd>
+        </dl>
+
+        @if (!isCurrentUser)
+        {
+            <hr />
+            <div class="d-flex flex-wrap gap-2">
+                @if (!u.IsApproved || u.ApprovalStatusId != 2)
+                {
+                    <form asp-controller="Admin" asp-action="ApproveUser" asp-route-id="@u.ID" method="post">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-success">Approve User Account</button>
+                    </form>
+                }
+                @if (u.ApprovalStatusId != 3)
+                {
+                    <form asp-controller="Admin" asp-action="RejectUser" asp-route-id="@u.ID" method="post">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-outline-danger">Reject User Account</button>
+                    </form>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-header bg-secondary text-white">
+        <h5 class="mb-0">Submitted Registration &amp; Detail Requests</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Type</th>
+                        <th>Submitted Data</th>
+                        <th>Status</th>
+                        <th>Remarks / Reviewer</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Requests.Any())
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">No requests recorded for this user.</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var req in Model.Requests)
+                        {
+                            var reqStatus = req.ApprovalStatus?.StatusName ?? "Pending";
+                            var reqBadge = reqStatus switch
+                            {
+                                "Approved" => "bg-success",
+                                "Rejected" => "bg-danger",
+                                _ => "bg-warning text-dark"
+                            };
+                            <tr>
+                                <td>#@req.RequestId</td>
+                                <td>@req.RequestType</td>
+                                <td class="small">
+                                    <div><strong>Name:</strong> @(req.SubmittedName ?? "-")</div>
+                                    <div><strong>Email:</strong> @(req.SubmittedEmail ?? "-")</div>
+                                    <div><strong>Phone:</strong> @(req.PhoneNumber ?? "-")</div>
+                                    <div><strong>Dept:</strong> @(req.Department ?? "-")</div>
+                                    <div><strong>Address:</strong> @(req.Address ?? "-")</div>
+                                    <div><strong>Details:</strong> @(req.PersonalDetails ?? "-")</div>
+                                    <div class="text-muted mt-1">Submitted: @req.SubmittedAt.ToString("yyyy-MM-dd HH:mm") UTC</div>
+                                </td>
+                                <td><span class="badge @reqBadge">@reqStatus</span></td>
+                                <td class="small">
+                                    <div>@(req.AdminRemarks ?? "-")</div>
+                                    @if (req.ReviewedAt.HasValue)
+                                    {
+                                        <div class="text-muted">
+                                            By @(req.ReviewedByUser?.Name ?? "Admin") on @req.ReviewedAt.Value.ToString("yyyy-MM-dd HH:mm") UTC
+                                        </div>
+                                    }
+                                </td>
+                                <td>
+                                    @if (req.ApprovalStatusId == 1)
+                                    {
+                                        <form method="post" asp-controller="Admin">
+                                            @Html.AntiForgeryToken()
+                                            <input type="text" name="remarks" class="form-control form-control-sm mb-2" maxlength="250" placeholder="Remarks..." />
+                                            <div class="d-flex gap-1">
+                                                <button type="submit" formaction="@Url.Action("ApproveRequest", "Admin", new { id = req.RequestId })" class="btn btn-sm btn-success">Approve</button>
+                                                <button type="submit" formaction="@Url.Action("RejectRequest", "Admin", new { id = req.RequestId })" class="btn btn-sm btn-danger">Reject</button>
+                                            </div>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">Reviewed</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
